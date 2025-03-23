@@ -3,24 +3,16 @@
 
 class Socket {
 public:
-    Socket();
+    explicit Socket(int port);
 
     ~Socket();
 
-    void InitSocket(int port);
+    [[nodiscard]] int AcceptConnection() const;
 
-    [[nodiscard]] int Accept() const;
+    [[nodiscard]] int GetServerFd() const;
 
 private:
-    void Create();
-
-    void Bind(int port);
-
-    void Listen() const;
-
     int server_fd_;
-
-    int port_{};
 };
 
 #endif //SOCKET_H

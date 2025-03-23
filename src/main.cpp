@@ -1,6 +1,6 @@
 #include "server/Server.h"
 
 int main() {
-    Server server{};
-    server.Run(8080);
+    Server server{8080};
+    server.Run();
 }
