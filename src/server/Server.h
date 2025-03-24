@@ -8,11 +8,13 @@ class Server {
 public:
     explicit Server(int port);
 
-    ~Server();
-
-    [[noreturn]] void Run();
+    void Start();
 
 private:
+    void handleServerEvent(int fd, uint32_t events);
+
+    void handleClientEvent(int fd, uint32_t events) const;
+
     Socket socket_;
     Epoll epoll_;
 };

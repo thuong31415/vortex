@@ -21,10 +21,15 @@ Epoll::~Epoll() {
 
 void Epoll::SetNonBlocking(const int fd) {
     const int flags = fcntl(fd, F_GETFL, 0);
-    fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+    if (flags == -1) {
+        throw std::runtime_error("Failed to get fd flags");
+    }
+    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) {
+        throw std::runtime_error("Failed to set non-blocking");
+    }
 }
 
-void Epoll::AddFd(const int fd, const uint32_t events) const {
+void Epoll::AddFd(const int fd, const uint32_t events, EventCallback callback) {
     SetNonBlocking(fd);
     epoll_event event{};
     event.data.fd = fd;
@@ -32,18 +37,37 @@ void Epoll::AddFd(const int fd, const uint32_t events) const {
     if (epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, fd, &event) < 0) {
         throw std::runtime_error("Failed to add fd to epoll");
     }
+    callbacks_[fd] = std::move(callback);
 }
 
+void Epoll::ModifyFd(const int fd, const uint32_t events) const {
+    epoll_event ev{};
+    ev.data.fd = fd;
+    ev.events = events;
+    if (epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, fd, &ev) < 0) {
+        throw std::runtime_error("Failed to modify fd in epoll");
+    }
+}
 
 void Epoll::RemoveFd(const int fd) const {
     epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, nullptr);
     close(fd);
 }
 
-int Epoll::Poll(const int timeout) {
-    return epoll_wait(epoll_fd_, events_.data(), max_events_, timeout);
+void Epoll::Run() {
+    while (true) {
+        int n = epoll_wait(epoll_fd_, events_.data(), max_events_, -1);
+        if (n < 0) {
+            throw std::runtime_error("epoll_wait failed");
+        }
+        for (int i = 0; i < n; ++i) {
+            int fd = events_[i].data.fd;
+            uint32_t event_flags = events_[i].events;
+            if (auto it = callbacks_.find(fd); it != callbacks_.end()) {
+                it->second(fd, event_flags);
+            }
+        }
+    }
 }
 
-epoll_event &Epoll::GetEvent(const int index) {
-    return events_[index];
-}
+
