@@ -3,9 +3,7 @@
 #include <iostream>
 #include <unistd.h>
 
-#include "../http/HttpHandler.h"
-
-Server::Server(const int port): socket_(port), epoll_(1000) {
+Server::Server(const int port, const size_t number_thread): socket_(port), epoll_(1000), pool_(number_thread) {
     epoll_.AddFd(socket_.GetServerFd(), EPOLLIN | EPOLLET,
                  [this](const int fd, const uint32_t events) { handleServerEvent(fd, events); });
 }
@@ -23,8 +21,11 @@ void Server::handleServerEvent(const int fd, const uint32_t events) {
         if (client_fd < 0) {
             return;
         }
+
         epoll_.AddFd(client_fd, EPOLLIN | EPOLLET,
-                     [this](const int fd, const uint32_t events) { handleClientEvent(fd, events); });
+             [this](const int fd, const uint32_t events) {
+                 pool_.Enqueue([this, fd, events] { handleClientEvent(fd, events); });
+             });
     }
 }
 

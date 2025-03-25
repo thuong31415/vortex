@@ -3,10 +3,11 @@
 
 #include "../network/Socket.h"
 #include "../network/Epoll.h"
+#include "../thread_pool/ThreadPool.h"
 
 class Server {
 public:
-    explicit Server(int port);
+    explicit Server(int port, size_t number_thread);
 
     void Start();
 
@@ -17,6 +18,7 @@ private:
 
     Socket socket_;
     Epoll epoll_;
+    ThreadPool pool_;
 };
 
 

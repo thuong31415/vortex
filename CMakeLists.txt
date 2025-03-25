@@ -16,4 +16,6 @@ add_executable(vortex src/main.cpp
         src/http/HttpResponse.h
         src/network/Epoll.cpp
         src/network/Epoll.h
+        src/thread_pool/ThreadPool.cpp
+        src/thread_pool/ThreadPool.h
 )
