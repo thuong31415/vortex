@@ -1,7 +1,9 @@
 #include "Server.h"
 
+#include <cstring>
 #include <iostream>
 #include <unistd.h>
+#include <csignal>
 
 Server::Server(const int port, const size_t number_thread): socket_(port), epoll_(1000), pool_(number_thread) {
     epoll_.AddFd(socket_.GetServerFd(), EPOLLIN | EPOLLET,
@@ -9,6 +11,7 @@ Server::Server(const int port, const size_t number_thread): socket_(port), epoll
 }
 
 void Server::Start() {
+    signal(SIGPIPE, SIG_IGN); // Ignore SIGPIPE
     std::cout << "Server running on port 8080...\n";
     epoll_.Run();
 }
@@ -22,10 +25,10 @@ void Server::handleServerEvent(const int fd, const uint32_t events) {
             return;
         }
 
-        epoll_.AddFd(client_fd, EPOLLIN | EPOLLET,
-             [this](const int fd, const uint32_t events) {
-                 pool_.Enqueue([this, fd, events] { handleClientEvent(fd, events); });
-             });
+        epoll_.AddFd(client_fd, EPOLLIN | EPOLLET ,
+                     [this](const int fd, const uint32_t events) {
+                         pool_.Enqueue([this, fd, events] { handleClientEvent(fd, events); });
+                     });
     }
 }
 
@@ -42,7 +45,14 @@ void Server::handleClientEvent(const int fd, const uint32_t events) const {
         const HttpRequest request{buffer};
         const HttpResponse response{request.GetVersion(), 200, request.GetBody()};
 
-        write(fd, response.ToString().c_str(), response.ToString().length());
-        epoll_.RemoveFd(fd);
+        if (write(fd, response.ToString().c_str(), response.ToString().length()) < 0) {
+            if (errno == EPIPE) {
+                std::cout << "Client closed connection: " << fd << "\n";
+            } else {
+                std::cerr << "Write error on fd " << fd << ": " << strerror(errno) << "\n";
+            }
+            epoll_.RemoveFd(fd);
+        }
+
     }
 }
