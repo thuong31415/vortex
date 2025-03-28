@@ -13,6 +13,11 @@ Socket::Socket(const int port) {
         throw std::runtime_error("Could not create socket");
     }
 
+    constexpr int opt = 1;
+    if (setsockopt(server_fd_, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        throw std::runtime_error("set sock opt SO_REUSEADDR failed");
+    }
+
     sockaddr_in server_address{};
     server_address.sin_family = AF_INET;
     server_address.sin_addr.s_addr = INADDR_ANY;
@@ -24,11 +29,6 @@ Socket::Socket(const int port) {
 
     if (listen(server_fd_, SOMAXCONN) == -1) {
         throw std::runtime_error("Failed to listen on socket");
-    }
-
-    constexpr int opt = 1;
-    if (setsockopt(server_fd_, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
-        throw std::runtime_error("set sock opt SO_REUSEADDR failed");
     }
 }
 

@@ -32,19 +32,17 @@ void Server::handleServerEvent(const int fd, const uint32_t events) {
 void Server::handleClientEvent(const int fd, const uint32_t events) const {
     if (events & EPOLLIN) {
         char buffer[1024]{};
-        const ssize_t bytes = read(fd, buffer, sizeof(buffer));
-        if (bytes <= 0) {
+
+        if (const ssize_t bytes = read(fd, buffer, sizeof(buffer)); bytes <= 0) {
             epoll_.RemoveFd(fd);
             std::cout << "Client disconnected: " << fd << "\n";
             return;
         }
 
-        const std::string request(buffer, bytes);
-        std::cout << "Received: " << request;
+        const HttpRequest request{buffer};
+        const HttpResponse response{request.GetVersion(), 200, request.GetBody()};
 
-        const std::string response = "HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello, World!";
-        write(fd, response.c_str(), response.length());
+        write(fd, response.ToString().c_str(), response.ToString().length());
         epoll_.RemoveFd(fd);
-        std::cout << "Response sent to client: " << fd << "\n";
     }
 }

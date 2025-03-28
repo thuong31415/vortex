@@ -7,6 +7,9 @@
 
 class HttpRequest {
 public:
+
+    HttpRequest() = default;
+
     explicit HttpRequest(const std::string &raw_request);
 
     std::string GetMethod() const;
@@ -20,11 +23,11 @@ public:
     std::string GetVersion() const;
 
 private:
-    std::string method_;
-    std::string path_;
-    std::string version_;
-    std::string body_;
-    std::unordered_map<std::string, std::string> headers_;
+    std::string method_{};
+    std::string path_{};
+    std::string version_{};
+    std::string body_{};
+    std::unordered_map<std::string, std::string> headers_{};
 
     void ParseRequest(const std::string &raw_request);
 };
