@@ -3,19 +3,19 @@ project(vortex)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(vortex src/main.cpp
-        src/network/Socket.cpp
-        src/network/Socket.h
-        src/server/Server.cpp
-        src/server/Server.h
-        src/http/HttpHandler.cpp
-        src/http/HttpHandler.h
-        src/http/HttpRequest.cpp
-        src/http/HttpRequest.h
-        src/http/HttpResponse.cpp
-        src/http/HttpResponse.h
-        src/network/Epoll.cpp
-        src/network/Epoll.h
-        src/thread_pool/ThreadPool.cpp
-        src/thread_pool/ThreadPool.h
+file(GLOB_RECURSE SERVER_SOURCES
+        src/main.cpp
+        src/network/*.cpp
+        src/server/*.cpp
+        src/http/*.cpp
+        src/thread_pool/*.cpp
 )
+
+file(GLOB_RECURSE CLIENT_SOURCES
+        src/client/*.cpp
+)
+
+add_executable(vortex ${SERVER_SOURCES})
+
+
+add_executable(vortex_client ${CLIENT_SOURCES})

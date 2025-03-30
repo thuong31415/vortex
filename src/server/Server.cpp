@@ -7,7 +7,7 @@
 
 Server::Server(const int port, const size_t number_thread): socket_(port), epoll_(1000), pool_(number_thread) {
     epoll_.AddFd(socket_.GetServerFd(), EPOLLIN | EPOLLET,
-                 [this](const int fd, const uint32_t events) { handleServerEvent(fd, events); });
+                 [this](const int fd, const uint32_t events) { HandleServerEvent(fd, events); });
 }
 
 void Server::Start() {
@@ -16,7 +16,7 @@ void Server::Start() {
     epoll_.Run();
 }
 
-void Server::handleServerEvent(const int fd, const uint32_t events) {
+void Server::HandleServerEvent(const int fd, const uint32_t events) {
     if (events & EPOLLIN) {
         sockaddr_in client_addr{};
         socklen_t len = sizeof(client_addr);
@@ -25,34 +25,40 @@ void Server::handleServerEvent(const int fd, const uint32_t events) {
             return;
         }
 
-        epoll_.AddFd(client_fd, EPOLLIN | EPOLLET ,
+        epoll_.AddFd(client_fd, EPOLLIN | EPOLLET | EPOLLONESHOT,
                      [this](const int fd, const uint32_t events) {
-                         pool_.Enqueue([this, fd, events] { handleClientEvent(fd, events); });
+                         pool_.Enqueue([this, fd, events] { HandleClientEvent(fd, events); });
                      });
     }
 }
 
-void Server::handleClientEvent(const int fd, const uint32_t events) const {
+void Server::HandleClientEvent(const int fd, const uint32_t events) const {
     if (events & EPOLLIN) {
         char buffer[1024]{};
-
-        if (const ssize_t bytes = read(fd, buffer, sizeof(buffer)); bytes <= 0) {
+        ssize_t bytes = read(fd, buffer, sizeof(buffer));
+        if (bytes < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                return;
+            }
+            epoll_.RemoveFd(fd);
+            std::cout << "Client disconnected with error: " << fd << " - " << strerror(errno) << "\n";
+            return;
+        }
+        if (bytes == 0) {
             epoll_.RemoveFd(fd);
             std::cout << "Client disconnected: " << fd << "\n";
             return;
         }
 
         const HttpRequest request{buffer};
-        const HttpResponse response{request.GetVersion(), 200, request.GetBody()};
+
+        const std::string body = request.GetMethod() == "GET" ? "Hello, World!" : request.GetBody();
+        HttpResponse response{request.GetVersion(), 200, body};
 
         if (write(fd, response.ToString().c_str(), response.ToString().length()) < 0) {
-            if (errno == EPIPE) {
-                std::cout << "Client closed connection: " << fd << "\n";
-            } else {
-                std::cerr << "Write error on fd " << fd << ": " << strerror(errno) << "\n";
-            }
             epoll_.RemoveFd(fd);
+            std::cout << "Write failed, client disconnected: " << fd << " - " << strerror(errno) << "\n";
         }
-
     }
 }
+

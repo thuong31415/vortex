@@ -7,7 +7,10 @@
 class HttpResponse {
 public:
     HttpResponse() = default;
-    HttpResponse(std::string http_version, int status_code, std::string body, std::string content_type = "application/json");
+
+    HttpResponse(std::string http_version, int status_code, std::string body,
+                 std::string content_type = "application/json");
+
     [[nodiscard]] std::string ToString() const;
 
 private:
