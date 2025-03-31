@@ -16,7 +16,7 @@ public:
 private:
     void HandleServerEvent(int fd, uint32_t events);
 
-    void HandleClientEvent(int fd, uint32_t events) const;
+    void HandleClientEvent(int fd, uint32_t events);
 
     Socket socket_;
     Epoll epoll_;

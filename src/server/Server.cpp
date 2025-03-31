@@ -32,10 +32,11 @@ void Server::HandleServerEvent(const int fd, const uint32_t events) {
     }
 }
 
-void Server::HandleClientEvent(const int fd, const uint32_t events) const {
+void Server::HandleClientEvent(const int fd, const uint32_t events)  {
     if (events & EPOLLIN) {
         char buffer[1024]{};
         ssize_t bytes = read(fd, buffer, sizeof(buffer));
+
         if (bytes < 0) {
             if (errno == EAGAIN || errno == EWOULDBLOCK) {
                 return;

@@ -5,6 +5,7 @@
 HttpResponse::HttpResponse(std::string http_version, const int status_code, std::string body, std::string content_type)
     : http_version_(std::move(http_version)), status_code_(status_code), body_(std::move(body)) {
     headers_["Content-Type"] = std::move(content_type);
+    headers_["Connection"] = "close";
     if (!body_.empty()) {
         headers_["Content-Length"] = std::to_string(body_.length());
     }
